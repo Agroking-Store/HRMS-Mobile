@@ -1,11 +1,18 @@
-export type PayslipStatus = 'Processed' | 'Pending';
+export type PayslipStatus =
+  | 'Generated'
+  | 'Verified'
+  | 'HR_Approved'
+  | 'CEO_Approved'
+  | 'Disbursed'
+  | 'Locked'
+  | 'Paid';
 
 export interface PayslipSummary {
-  id: string;
-  month: number;
+  payrollId: string;
+  month: number | string;
   year: number;
-  netSalary: number;
-  grossSalary: number;
+  netPay: number;
+  grossPay: number;
   totalDeductions: number;
   status: PayslipStatus;
 }

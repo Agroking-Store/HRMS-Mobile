@@ -16,16 +16,40 @@ const extractValue = <T>(payload: T | ApiEnvelope<T>): T => {
   return payload as T;
 };
 
-export const getMyPayslips = async (): Promise<PayslipSummary[]> => {
+export const getMyPayslips = async (userId: string): Promise<PayslipSummary[]> => {
   const response = await apiClient.get<PayslipSummary[] | ApiEnvelope<PayslipSummary[]>>(
-    '/payroll/my-payslips',
+    `/payroll/history/${userId}`,
   );
   return extractValue(response.data);
 };
 
-export const getPayslipDetail = async (payslipId: string): Promise<PayslipDetail> => {
+export const getPayslipDetail = async (
+  payrollId: string,
+  employeeId: string,
+): Promise<PayslipDetail> => {
   const response = await apiClient.get<PayslipDetail | ApiEnvelope<PayslipDetail>>(
-    `/payroll/payslip/${payslipId}`,
+    `/payroll/${payrollId}/slip/${employeeId}`,
   );
-  return extractValue(response.data);
+  const payload = extractValue(response.data) as unknown as {
+    payroll: { month: number | string; year: number; status: string };
+    slip: {
+      netPay: number;
+      grossPay: number;
+      totalDeductions?: number;
+      earnings?: Record<string, number>;
+      deductions?: Record<string, number>;
+    };
+  };
+
+  return {
+    payrollId,
+    month: payload.payroll.month,
+    year: payload.payroll.year,
+    status: payload.payroll.status as PayslipDetail['status'],
+    netPay: payload.slip.netPay,
+    grossPay: payload.slip.grossPay,
+    totalDeductions: payload.slip.totalDeductions ?? 0,
+    earnings: Object.entries(payload.slip.earnings ?? {}).map(([label, amount]) => ({ label, amount })),
+    deductions: Object.entries(payload.slip.deductions ?? {}).map(([label, amount]) => ({ label, amount })),
+  };
 };

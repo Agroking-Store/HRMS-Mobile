@@ -1,5 +1,5 @@
 import apiClient from './apiClient';
-import { ProfileDetail } from '../types/profile';
+import { ProfileDetail, UpdateMyProfilePayload } from '../types/profile';
 
 interface ApiEnvelope<T> {
   success?: boolean;
@@ -17,16 +17,13 @@ const extractValue = <T>(payload: T | ApiEnvelope<T>): T => {
 };
 
 export const getMyProfile = async (): Promise<ProfileDetail> => {
-  const response = await apiClient.get<ProfileDetail | ApiEnvelope<ProfileDetail>>('/employee/my-profile');
+  const response = await apiClient.get<ProfileDetail | ApiEnvelope<ProfileDetail>>('/auth/profile');
   return extractValue(response.data);
 };
 
 export const updateMyProfile = async (
-  payload: Partial<ProfileDetail>,
+  payload: UpdateMyProfilePayload,
 ): Promise<ProfileDetail> => {
-  const response = await apiClient.put<ProfileDetail | ApiEnvelope<ProfileDetail>>(
-    '/employee/my-profile',
-    payload,
-  );
+  const response = await apiClient.put<ProfileDetail | ApiEnvelope<ProfileDetail>>('/auth/profile', payload);
   return extractValue(response.data);
 };

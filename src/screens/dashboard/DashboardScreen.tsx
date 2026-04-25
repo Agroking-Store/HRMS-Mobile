@@ -1,117 +1,141 @@
-import React from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import React, { useCallback, useState } from 'react';
+import {
+  ActivityIndicator,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '../../context/AuthContext';
-import { UserRole } from '../../types/auth';
+import { getDashboardPayload } from '../../services/dashboardService';
+import { DashboardPayload, DashboardSection } from '../../types/dashboard';
+import { getApiErrorMessage } from '../../utils/apiError';
 
-interface DashboardTile {
-  id: string;
-  title: string;
-  subtitle: string;
-}
-
-const ROLE_TILES: Record<UserRole, DashboardTile[]> = {
-  ADMIN: [
-    { id: 'workforce', title: 'Workforce Overview', subtitle: 'Headcount, attendance, and active staff' },
-    { id: 'compliance', title: 'Compliance Queue', subtitle: 'Pending approvals and flagged records' },
-    { id: 'operations', title: 'Operations Snapshot', subtitle: 'Cross-team productivity and utilization' },
-  ],
-  SUPER_ADMIN: [
-    { id: 'org-health', title: 'Organization Health', subtitle: 'Global KPIs across departments' },
-    { id: 'security', title: 'Access Governance', subtitle: 'Role assignments and audit checks' },
-    { id: 'admin-tasks', title: 'Critical Tasks', subtitle: 'High-priority approvals requiring action' },
-  ],
-  CEO: [
-    { id: 'executive-view', title: 'Executive Summary', subtitle: 'Company-level HR and payroll highlights' },
-    { id: 'growth', title: 'Growth Indicators', subtitle: 'Hiring pace and retention movement' },
-    { id: 'risk', title: 'Risk Monitor', subtitle: 'Escalations affecting workforce continuity' },
-  ],
-  COUNTRY_MANAGER: [
-    { id: 'country-kpi', title: 'Country KPIs', subtitle: 'Performance and staffing by region' },
-    { id: 'people-alerts', title: 'People Alerts', subtitle: 'Outstanding leave and shift exceptions' },
-    { id: 'approvals', title: 'Regional Approvals', subtitle: 'Requests awaiting managerial decisions' },
-  ],
-  OPERATIONS_MANAGER: [
-    { id: 'ops-capacity', title: 'Capacity Status', subtitle: 'Shift allocation and attendance trends' },
-    { id: 'service-level', title: 'Service Coverage', subtitle: 'Department readiness and gaps' },
-    { id: 'ops-actions', title: 'Action Queue', subtitle: 'Open staffing actions and follow-ups' },
-  ],
-  FINANCE_MANAGER: [
-    { id: 'payroll-health', title: 'Payroll Health', subtitle: 'Processed cycles and pending validations' },
-    { id: 'cost-overview', title: 'Cost Overview', subtitle: 'Compensation distribution by team' },
-    { id: 'finance-alerts', title: 'Finance Alerts', subtitle: 'Discrepancies requiring intervention' },
-  ],
-  HR_MANAGER: [
-    { id: 'people-insights', title: 'People Insights', subtitle: 'Attendance, leave, and active cases' },
-    { id: 'talent-pipeline', title: 'Talent Pipeline', subtitle: 'Open requisitions and onboarding status' },
-    { id: 'hr-approvals', title: 'HR Approvals', subtitle: 'Requests awaiting HR manager review' },
-  ],
-  HR_OFFICER: [
-    { id: 'daily-ops', title: 'Daily Operations', subtitle: 'Attendance corrections and leave updates' },
-    { id: 'employee-requests', title: 'Employee Requests', subtitle: 'Profile and document support tasks' },
-    { id: 'follow-up', title: 'Follow-up Queue', subtitle: 'Cases pending completion' },
-  ],
-  PAYROLL_OFFICER: [
-    { id: 'salary-cycle', title: 'Salary Cycle', subtitle: 'Current period processing status' },
-    { id: 'exceptions', title: 'Payroll Exceptions', subtitle: 'Unresolved anomalies and rechecks' },
-    { id: 'payout-readiness', title: 'Payout Readiness', subtitle: 'Verification progress before release' },
-  ],
-  PROJECT_MANAGER: [
-    { id: 'team-availability', title: 'Team Availability', subtitle: 'Attendance and leave impact by project' },
-    { id: 'deliverables', title: 'Delivery Alignment', subtitle: 'Resource readiness for milestones' },
-    { id: 'manager-actions', title: 'Manager Actions', subtitle: 'Pending approvals and escalations' },
-  ],
-  DEPARTMENT_MANAGER: [
-    { id: 'department-status', title: 'Department Status', subtitle: 'Staffing, attendance, and leave trends' },
-    { id: 'workload', title: 'Workload Balance', subtitle: 'Distribution and utilization indicators' },
-    { id: 'manager-pending', title: 'Pending Items', subtitle: 'Requests awaiting department action' },
-  ],
-  DIRECT_MANAGER: [
-    { id: 'team-pulse', title: 'Team Pulse', subtitle: 'Daily attendance and active leave requests' },
-    { id: 'review-items', title: 'Review Items', subtitle: 'Approvals and direct report updates' },
-    { id: 'manager-focus', title: 'Focus Today', subtitle: 'Priority items for immediate attention' },
-  ],
-  EMPLOYEE: [
-    { id: 'today-status', title: 'Today at a Glance', subtitle: 'Attendance and shift information' },
-    { id: 'leave-balance', title: 'Leave Balance', subtitle: 'Available leave and recent requests' },
-    { id: 'payroll-info', title: 'Payroll Snapshot', subtitle: 'Latest salary and deductions summary' },
-  ],
+const SectionCard = ({ section }: { section: DashboardSection }) => {
+  return (
+    <View style={styles.sectionCard}>
+      <Text style={styles.sectionTitle}>{section.title}</Text>
+      <Text style={styles.sectionSubtitle}>{section.subtitle}</Text>
+      {section.pending ? (
+        <View style={styles.pendingBox}>
+          <Text style={styles.pendingTitle}>{section.pending.title}</Text>
+          <Text style={styles.pendingText}>{section.pending.message}</Text>
+        </View>
+      ) : null}
+      {section.metrics?.map(metric => (
+        <View key={metric.key} style={styles.metricRow}>
+          <View style={styles.metricTextWrap}>
+            <Text style={styles.metricLabel}>{metric.label}</Text>
+            <Text style={styles.metricHint}>{metric.hint}</Text>
+          </View>
+          <Text style={styles.metricValue}>{metric.value}</Text>
+        </View>
+      ))}
+      {section.actions?.map(action => (
+        <View key={action.key} style={styles.actionRow}>
+          <Text style={styles.actionLabel}>{action.label}</Text>
+          <Text style={styles.actionDescription}>{action.description}</Text>
+        </View>
+      ))}
+    </View>
+  );
 };
 
 export default function DashboardScreen() {
   const { user } = useAuth();
+  const [loading, setLoading] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState('');
+  const [payload, setPayload] = useState<DashboardPayload | null>(null);
+
+  const load = useCallback(
+    async (isRefresh: boolean) => {
+      if (!user) {
+        return;
+      }
+      if (isRefresh) {
+        setRefreshing(true);
+      } else {
+        setLoading(true);
+      }
+      setError('');
+      try {
+        const data = await getDashboardPayload(user.role, user.id);
+        setPayload(data);
+      } catch (err: unknown) {
+        setError(getApiErrorMessage(err, 'Unable to load dashboard.'));
+      } finally {
+        if (isRefresh) {
+          setRefreshing(false);
+        } else {
+          setLoading(false);
+        }
+      }
+    },
+    [user],
+  );
+
+  useFocusEffect(
+    useCallback(() => {
+      void load(false);
+    }, [load]),
+  );
 
   if (!user) {
     return (
-      <View style={[styles.container, styles.center]}>
+      <SafeAreaView style={[styles.container, styles.center]} edges={['top']}>
         <Text style={styles.emptyTitle}>No active session</Text>
         <Text style={styles.emptySubtitle}>Please log in again to view your dashboard.</Text>
-      </View>
+      </SafeAreaView>
     );
   }
 
-  const tiles = ROLE_TILES[user.role] ?? ROLE_TILES.EMPLOYEE;
+  if (loading && !payload) {
+    return (
+      <SafeAreaView style={[styles.container, styles.center]} edges={['top']}>
+        <ActivityIndicator size="large" color="#01696f" />
+      </SafeAreaView>
+    );
+  }
+
+  if (error && !payload) {
+    return (
+      <SafeAreaView style={[styles.container, styles.center]} edges={['top']}>
+        <Text style={styles.errorText}>{error}</Text>
+        <TouchableOpacity style={styles.retryButton} onPress={() => void load(false)}>
+          <Text style={styles.retryText}>Retry</Text>
+        </TouchableOpacity>
+      </SafeAreaView>
+    );
+  }
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      <Text style={styles.welcomeText}>Welcome back, {user.firstName}</Text>
-      <Text style={styles.roleText}>{user.role.replaceAll('_', ' ')}</Text>
-      <View style={styles.statsRow}>
-        <View style={styles.statCard}>
-          <Text style={styles.statValue}>{user.employeeCode}</Text>
-          <Text style={styles.statLabel}>Employee Code</Text>
+    <SafeAreaView style={styles.container} edges={['top']}>
+      <ScrollView
+        contentContainerStyle={styles.content}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => void load(true)} />}
+      >
+        <Text style={styles.headerTitle}>{payload?.title ?? 'Dashboard'}</Text>
+        <Text style={styles.headerSubtitle}>{payload?.subtitle ?? ''}</Text>
+        <View style={styles.userCard}>
+          <Text style={styles.userName}>
+            {user.firstName} {user.lastName}
+          </Text>
+          <Text style={styles.userMeta}>{user.role.replaceAll('_', ' ')}</Text>
+          <Text style={styles.userMeta}>
+            {user.employeeCode} | {user.department}
+          </Text>
         </View>
-        <View style={styles.statCard}>
-          <Text style={styles.statValue}>{user.department}</Text>
-          <Text style={styles.statLabel}>Department</Text>
-        </View>
-      </View>
-      {tiles.map(tile => (
-        <View key={tile.id} style={styles.tileCard}>
-          <Text style={styles.tileTitle}>{tile.title}</Text>
-          <Text style={styles.tileSubtitle}>{tile.subtitle}</Text>
-        </View>
-      ))}
-    </ScrollView>
+        {error ? <Text style={styles.inlineError}>{error}</Text> : null}
+        {(payload?.sections ?? []).map(section => (
+          <SectionCard key={section.key} section={section} />
+        ))}
+      </ScrollView>
+    </SafeAreaView>
   );
 }
 
@@ -126,66 +150,138 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   center: {
-    alignItems: 'center',
     justifyContent: 'center',
+    alignItems: 'center',
     padding: 24,
+    gap: 10,
   },
-  welcomeText: {
+  headerTitle: {
     fontSize: 22,
     fontWeight: '700',
     color: '#111827',
   },
-  roleText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#01696f',
-    marginBottom: 4,
-    textTransform: 'capitalize',
-  },
-  statsRow: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  statCard: {
-    flex: 1,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 14,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-  },
-  statValue: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#111827',
-  },
-  statLabel: {
-    fontSize: 12,
-    color: '#6B7280',
-    marginTop: 4,
-  },
-  tileCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 14,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-  },
-  tileTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#111827',
-    marginBottom: 4,
-  },
-  tileSubtitle: {
+  headerSubtitle: {
     fontSize: 14,
     color: '#6B7280',
   },
-  emptyTitle: {
+  userCard: {
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    borderRadius: 12,
+    padding: 14,
+    gap: 4,
+  },
+  userName: {
     fontSize: 18,
     fontWeight: '700',
     color: '#111827',
-    marginBottom: 6,
+  },
+  userMeta: {
+    fontSize: 13,
+    color: '#6B7280',
+  },
+  sectionCard: {
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    borderRadius: 12,
+    padding: 14,
+    gap: 8,
+  },
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#111827',
+  },
+  sectionSubtitle: {
+    fontSize: 13,
+    color: '#6B7280',
+    marginBottom: 2,
+  },
+  metricRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    gap: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#E5E7EB',
+    paddingTop: 8,
+  },
+  metricTextWrap: {
+    flex: 1,
+    gap: 2,
+  },
+  metricLabel: {
+    fontSize: 14,
+    color: '#111827',
+    fontWeight: '600',
+  },
+  metricHint: {
+    fontSize: 12,
+    color: '#6B7280',
+  },
+  metricValue: {
+    fontSize: 14,
+    color: '#01696f',
+    fontWeight: '700',
+  },
+  actionRow: {
+    borderTopWidth: 1,
+    borderTopColor: '#E5E7EB',
+    paddingTop: 8,
+    gap: 2,
+  },
+  actionLabel: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#111827',
+  },
+  actionDescription: {
+    fontSize: 12,
+    color: '#6B7280',
+  },
+  pendingBox: {
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#F59E0B',
+    backgroundColor: '#FFFBEB',
+    padding: 10,
+    gap: 4,
+  },
+  pendingTitle: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#92400E',
+  },
+  pendingText: {
+    fontSize: 12,
+    color: '#B45309',
+  },
+  errorText: {
+    color: '#EF4444',
+    fontSize: 14,
+    textAlign: 'center',
+  },
+  inlineError: {
+    color: '#EF4444',
+    fontSize: 13,
+  },
+  retryButton: {
+    backgroundColor: '#01696f',
+    borderRadius: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+  },
+  retryText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  emptyTitle: {
+    fontSize: 18,
+    color: '#111827',
+    fontWeight: '700',
   },
   emptySubtitle: {
     fontSize: 14,

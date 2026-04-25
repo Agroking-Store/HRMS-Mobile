@@ -1,0 +1,392 @@
+Activity Resolver Table:
+  Non-Data Actions:
+      android.intent.action.MAIN:
+        9f820b5 com.hrmsapp/.MainActivity filter 99b434a
+          Action: "android.intent.action.MAIN"
+          Category: "android.intent.category.LAUNCHER"
+
+Receiver Resolver Table:
+  Non-Data Actions:
+      androidx.profileinstaller.action.SAVE_PROFILE:
+        ad862bb com.hrmsapp/androidx.profileinstaller.ProfileInstallReceiver filter fd24a16
+          Action: "androidx.profileinstaller.action.SAVE_PROFILE"
+      androidx.profileinstaller.action.INSTALL_PROFILE:
+        ad862bb com.hrmsapp/androidx.profileinstaller.ProfileInstallReceiver filter 3d933d8
+          Action: "androidx.profileinstaller.action.INSTALL_PROFILE"
+      androidx.profileinstaller.action.SKIP_FILE:
+        ad862bb com.hrmsapp/androidx.profileinstaller.ProfileInstallReceiver filter 2571331
+          Action: "androidx.profileinstaller.action.SKIP_FILE"
+      androidx.profileinstaller.action.BENCHMARK_OPERATION:
+        ad862bb com.hrmsapp/androidx.profileinstaller.ProfileInstallReceiver filter 2206f97
+          Action: "androidx.profileinstaller.action.BENCHMARK_OPERATION"
+
+Domain verification status:
+
+Permissions:
+  Permission [com.hrmsapp.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION] (dc90f2d):
+    sourcePackage=com.hrmsapp
+    uid=10596 gids=[] type=0 prot=signature
+    perm=PermissionInfo{b095c62 com.hrmsapp.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION}
+    flags=0x0
+
+Registered ContentProviders:
+  com.hrmsapp/androidx.startup.InitializationProvider:
+    Provider{2ee61f3 com.hrmsapp/androidx.startup.InitializationProvider}
+
+ContentProvider Authorities:
+  [com.hrmsapp.androidx-startup]:
+    Provider{2ee61f3 com.hrmsapp/androidx.startup.InitializationProvider}
+      applicationInfo=ApplicationInfo{649eeb0 com.hrmsapp}
+
+Key Set Manager:
+  [com.hrmsapp]
+      Signing KeySets: 348
+
+Packages:
+  Package [com.hrmsapp] (f95cfdd):
+    appId=10596
+    pkg=Package{547129 com.hrmsapp}
+    codePath=/data/app/~~5tVd5UQ6GuAuDKDaFxD-sg==/com.hrmsapp-3oEHxgG2y-NKnAZehCMWBA==
+    resourcePath=/data/app/~~5tVd5UQ6GuAuDKDaFxD-sg==/com.hrmsapp-3oEHxgG2y-NKnAZehCMWBA==
+    legacyNativeLibraryDir=/data/app/~~5tVd5UQ6GuAuDKDaFxD-sg==/com.hrmsapp-3oEHxgG2y-NKnAZehCMWBA==/lib
+    extractNativeLibs=false
+    primaryCpuAbi=arm64-v8a
+    secondaryCpuAbi=null
+    cpuAbiOverride=null
+    versionCode=1 minSdk=24 targetSdk=36
+    minExtensionVersions=[]
+    versionName=1.0
+    hiddenApiEnforcementPolicy=2
+    usesNonSdkApi=false
+    splits=[base]
+    apkSigningVersion=2
+    flags=[ DEBUGGABLE HAS_CODE ALLOW_CLEAR_USER_DATA ]
+    privateFlags=[ PRIVATE_FLAG_ACTIVITIES_RESIZE_MODE_RESIZEABLE_VIA_SDK_VERSION ALLOW_AUDIO_PLAYBACK_CAPTURE PRIVATE_FLAG_ALLOW_NATIVE_HEAP_POINTER_TAGGING ]
+    forceQueryable=false
+    pageSizeCompat=0
+    scannedAsStoppedSystemApp=false
+    supportsScreens=[small, medium, large, xlarge, resizeable, anyDensity]
+    timeStamp=2026-04-25 21:06:56
+    lastUpdateTime=2026-04-25 21:06:56
+    installerPackageName=null
+    installerPackageUid=-1
+    initiatingPackageName=com.android.shell
+    originatingPackageName=null
+    category=manifest: -1, override: -1, by user: -1
+    packageSource=1
+    appMetadataFilePath=null
+    appMetadataSource=0
+    signatures=PackageSignatures{d24dcae version:2, signatures:[51ed3f60], past signatures:[]}
+    installPermissionsFixed=false
+    pkgFlags=[ DEBUGGABLE HAS_CODE ALLOW_CLEAR_USER_DATA ]
+    privatePkgFlags=[ PRIVATE_FLAG_ACTIVITIES_RESIZE_MODE_RESIZEABLE_VIA_SDK_VERSION ALLOW_AUDIO_PLAYBACK_CAPTURE PRIVATE_FLAG_ALLOW_NATIVE_HEAP_POINTER_TAGGING ]
+    apexModuleName=null
+    componentsDeclared=4
+    declared permissions:
+      com.hrmsapp.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION: prot=signature
+    requested permissions:
+      android.permission.SYSTEM_ALERT_WINDOW
+      com.hrmsapp.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION
+      android.permission.INTERNET
+    install permissions:
+      com.hrmsapp.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION: granted=true
+      android.permission.INTERNET: granted=true
+    User 0: ceDataInode=844199 deDataInode=865473 installed=true hidden=false suspended=false distractionFlags=0 stopped=false notLaunched=false enabled=0 instant=false virtual=false quarantined=false
+      installReason=0
+      dataDir=/data/user/0/com.hrmsapp
+      firstInstallTime=2026-04-22 20:35:41
+      uninstallReason=0
+      overlay paths:
+        /product/overlay/NavigationBarModeGestural/NavigationBarModeGesturalOverlay.apk
+        /data/resource-cache/com.android.systemui-dynamic-FP5z.frro
+        /data/resource-cache/android-SemWT_G_MonetPalette-7kn2.frro
+      legacy overlay paths:
+        /product/overlay/NavigationBarModeGestural/NavigationBarModeGesturalOverlay.apk
+      gids=[3003]
+      runtime permissions:
+    User 95: ceDataInode=849470 deDataInode=177895 installed=true hidden=false suspended=false distractionFlags=0 stopped=false notLaunched=false enabled=0 instant=false virtual=false quarantined=false
+      installReason=0
+      dataDir=/data/user/95/com.hrmsapp
+      firstInstallTime=2026-04-22 20:35:41
+      uninstallReason=0
+      overlay paths:
+        /data/resource-cache/android-SemWT_G_MonetPalette-7kn2.frro
+      gids=[3003]
+      runtime permissions:
+    User 150: ceDataInode=0 deDataInode=0 installed=false hidden=false suspended=false distractionFlags=0 stopped=true notLaunched=true enabled=0 instant=false virtual=false quarantined=false
+      installReason=0
+      dataDir=null
+      firstInstallTime=2026-04-22 20:35:41
+      uninstallReason=0
+      overlay paths:
+        /data/resource-cache/android-SemWT_G_MonetPalette-7kn2.frro
+      gids=[3003]
+      runtime permissions:
+
+Queries:
+  system apps queryable: false
+  queries via forceQueryable:
+  queries via package name:
+  queries via component:
+    com.samsung.android.bixby.agent:
+      com.hrmsapp
+    com.android.settings.intelligence:
+      com.hrmsapp
+    com.nic.mparivahan:
+      com.hrmsapp
+    com.google.android.apps.accessibility.voiceaccess:
+      com.hrmsapp
+    com.google.android.as:
+      com.hrmsapp
+    com.google.android.as.oss:
+      com.hrmsapp
+    com.microsoft.office.outlook:
+      com.hrmsapp
+    com.unept.leveldevil:
+      com.hrmsapp
+    net.one97.paytm:
+      com.hrmsapp
+    com.flipkart.android:
+      com.hrmsapp
+    com.bankofbaroda.mconnect:
+      com.hrmsapp
+    com.application.zomato:
+      com.hrmsapp
+    com.snapchat.android:
+      com.hrmsapp
+    in.cricketexchange.app.cricketexchange:
+      com.hrmsapp
+    com.meesho.supply:
+      com.hrmsapp
+    com.cardfeed.video_public:
+      com.hrmsapp
+    com.zeptoconsumerapp:
+      com.hrmsapp
+    in.amazon.mShop.android.shopping:
+      com.hrmsapp
+    com.bt.bms:
+      com.hrmsapp
+    com.phonepe.app:
+      com.hrmsapp
+    com.ludo.king:
+      com.hrmsapp
+    com.pdfeditor.pdfeditorandriod:
+      com.hrmsapp
+    com.wakeup.howear:
+      com.hrmsapp
+    com.JindoBlu.TwoPlayerGamesChallenge:
+      com.hrmsapp
+    com.bigduckgames.flow:
+      com.hrmsapp
+    com.mxtech.videoplayer.ad:
+      com.hrmsapp
+    com.opera.mini.native:
+      com.hrmsapp
+    ai.perplexity.app.android:
+      com.hrmsapp
+    com.inmobi.weather:
+      com.hrmsapp
+    com.vehicle.rto.vahan.status.information.register:
+      com.hrmsapp
+    intelligems.torrdroid:
+      com.hrmsapp
+    com.snowcorp.stickerly.android:
+      com.hrmsapp
+    com.bsbportal.music:
+      com.hrmsapp
+    ru.zdevs.zarchiver:
+      com.hrmsapp
+    droom.sleepIfUCan:
+      com.hrmsapp
+    in.startv.hotstar:
+      com.hrmsapp
+    com.njj.mactivepro:
+      com.hrmsapp
+    in.swiggy.android.instamart:
+      com.hrmsapp
+    free.programming.programming:
+      com.hrmsapp
+    com.instagram.android:
+      com.hrmsapp
+    com.ecffri.arrows:
+      com.hrmsapp
+    com.truecaller:
+      com.hrmsapp
+    com.whatsapp:
+      com.hrmsapp
+    com.samsung.android.spay:
+      com.hrmsapp
+    com.pubg.imobile:
+      com.hrmsapp
+    com.zhiliaoapp.musically:
+      com.hrmsapp
+    cc.honista.app:
+      com.hrmsapp
+    com.bigwinepot.nwdn.international:
+      com.hrmsapp
+    com.lemon.lvoverseas:
+      com.hrmsapp
+    org.altruist.BajajExperia:
+      com.hrmsapp
+  queryable via interaction:
+    User 0:
+      [com.sec.android.app.SecSetupWizard,com.sec.modem.settings,com.samsung.android.qmdservice,android,com.sec.android.smartfpsadjuster,com.samsung.android.simagent,com.samsung.android.wifi.intelligence,com.sec.nrsaentitlement,com.android.settings,com.samsung.android.motionphoto.app,com.sec.android.app.quicktool,com.sec.android.iaft,com.sec.mhs.smarttethering,com.samsung.android.fmm,com.sec.android.app.hwmoduletest,com.samsung.sait.sohservice,com.samsung.android.aircommandmanager,com.samsung.android.knox.mpos,com.sec.android.soagent,com.sec.android.app.servicemodeapp,com.sec.android.app.parser,com.sec.android.sdhms,com.samsung.android.smartswitchassistant,com.android.localtransport,com.samsung.android.smartface,com.samsung.android.app.omcagent,com.samsung.android.sead,com.samsung.android.dck.timesync,com.sec.android.emergencylauncher,com.samsung.android.app.dressroom,com.sec.android.CcInfo,com.samsung.android.brightnessbackupservice,com.samsung.android.vtcamerasettings,com.samsung.android.svcagent,com.sec.android.app.factorykeystring,com.samsung.accessibility,com.samsung.SMT,com.sec.android.app.personalization,com.samsung.android.stickercenter,com.samsung.android.knox.attestation,com.sec.sve,com.samsung.android.vexfwk.service,com.samsung.android.hdmapp,com.samsung.android.bbc.bbcagent,com.samsung.android.providers.factory,com.samsung.android.camerasdkservice,com.samsung.android.ese,com.sec.imsservice,com.sec.epdg,com.samsung.android.app.esimkeystring,com.samsung.android.emergency,com.samsung.android.da.daagent,com.samsung.android.themecenter,com.samsung.android.knox.pushmanager,com.samsung.android.forest,com.android.location.fused,com.samsung.android.cameraxservice,com.android.keychain,com.sec.factory.camera,com.skms.android.agent,com.samsung.android.mdecservice,com.sec.android.app.desktoplauncher,com.samsung.aasaservice,com.sec.app.RilErrorNotifier,com.sec.android.app.uwbtest,com.sec.android.app.RilPhoneNumberService,com.samsung.android.wifi.ai,com.samsung.android.knox.zt.framework,com.android.server.telecom,com.wssyncmldm,com.sec.android.app.wlantest,com.sec.facatfunction,com.qti.snapdragon.qdcm_ff,com.sec.usbsettings,com.samsung.android.lool,com.samsung.euicc,com.android.dynsystem,com.sem.factoryapp,com.samsung.android.biometrics.app.setting,com.sec.automation,com.samsung.android.bixby.wakeup,com.qualcomm.qti.services.systemhelper,com.sec.imslogger,com.samsung.android.photoremasterservice,com.samsung.android.dqagent,com.samsung.oda.service,com.samsung.android.provider.filterprovider,com.samsung.android.globalpostprocmgr,com.samsung.gpuwatchapp,com.android.providers.settings,com.sec.android.diagmonagent,com.sec.bcservice,com.android.inputdevices]:
+        com.hrmsapp
+      [com.google.android.gsf,com.google.android.gms]:
+        com.hrmsapp
+      com.google.android.inputmethod.latin:
+        com.hrmsapp
+    User 95:
+    User 150:
+  queryable via uses-library:
+
+Dexopt state:
+  [com.hrmsapp]
+    path: /data/app/~~5tVd5UQ6GuAuDKDaFxD-sg==/com.hrmsapp-3oEHxgG2y-NKnAZehCMWBA==/base.apk
+      arm64: [status=run-from-apk] [reason=unknown] [primary-abi]
+        [location is error]
+
+SPEG state:
+  Event #7: 22-03-2026 03:38:36.964 Success app.revanced.android.youtube took 2871 ms
+  Event #6: 22-03-2026 03:38:25.377 Success app.revanced.android.apps.youtube.music took 2358 ms
+  Event #5: 22-03-2026 03:37:24.271 Success com.revanced.net.revancedmanager took 2232 ms
+  Event #4: 19-03-2026 03:40:16.910 Success com.kompasproductions.summertimesaga took 2277 ms
+  Event #3: 20-12-2025 19:06:32.981 Success com.spotify.music took 2527 ms
+  Event #2: 19-12-2025 02:39:19.297 Failure com.spotify.music took 3102 ms
+  Event #1: 01-11-2025 11:39:18.834 Success com.instander.android took 2311 ms
+  Event #0: 19-10-2025 12:47:48.298 Success org.koitharu.kotatsu took 2249 ms
+
+Profile utilization state:
+  Current state:
+    Version: 2.1.1
+    Start reason: boot-no-update
+    Start time: not started
+    Finish time: not finished
+    PU_StatusWatcher:
+      Initial thermal status: 0
+      Thermal status: 0
+      Screen off: false
+      Low battery: true
+    PU_DexoptTrigger:
+      Dexopt concurrency: 4
+      Dexopting: false
+    PU_Storage:
+      Stored apps:
+        com.whatsapp 71
+        com.instagram.android 100
+        com.samsung.android.dialer 121
+        com.android.chrome 126
+        org.telegram.messenger 136
+        org.koitharu.kotatsu 138
+        com.sec.android.gallery3d 152
+        in.amazon.mShop.android.shopping 156
+        com.snapchat.android 158
+        com.google.android.youtube 173
+        com.google.android.googlequicksearchbox 182
+        com.sec.android.app.camera 183
+        com.google.android.gm 186
+        in.cricketexchange.app.cricketexchange 187
+        droom.sleepIfUCan 192
+        com.linkedin.android 195
+        com.myntra.android 195
+        com.reddit.frontpage 203
+        com.mxtech.videoplayer.ad 204
+        com.sec.android.app.myfiles 209
+        net.one97.paytm 211
+        com.lemon.lvoverseas 217
+        com.android.settings 219
+        com.sp.protector.free 222
+        com.flipkart.android 225
+        com.google.android.apps.tachyon 225
+        com.ytheekshana.deviceinfo 227
+        com.sec.android.app.vepreload 235
+        com.sec.android.easyMover 239
+        com.samsung.android.app.notes 240
+        com.phonepe.app 242
+        com.sec.android.app.voicenote 243
+        com.samsung.android.app.contacts 244
+        com.sec.android.app.sbrowser 250
+        com.miniclip.cricketleague 254
+        com.android.vending 255
+        com.google.android.apps.messaging 257
+        com.samsung.android.tvplus 257
+        com.application.zomato 259
+        com.samsung.android.bixby.agent 260
+        com.samsung.android.messaging 261
+        com.codeway.pixelup 263
+        com.bankofbaroda.mconnect 264
+        com.google.android.apps.nbu.paisa.user 266
+        com.samsung.android.app.reminder 269
+        com.matchpointgps.app 274
+        com.internet.speed.meter.lite 276
+        com.microsoft.office.outlook 277
+        com.remind.drink.water.hourly 277
+        com.jio.myjio 278
+        com.google.android.inputmethod.latin 279
+        com.facebook.katana 287
+        com.cardfeed.video_public 300
+        ai.perplexity.app.android 302
+        com.Dominos 313
+        com.google.android.apps.chromecast.app 316
+        com.samsung.android.app.find 342
+    Stored PU state:
+      Service:
+        Version: 2.1.1
+        Start reason: boot-after-ota
+        Start time: Wed Apr 08 02:12:39 GMT+05:30 2026 ts=1775594559790
+        Finish time: Wed Apr 08 03:36:06 GMT+05:30 2026 ts=1775599566710
+        Took time 5006sec
+      Watcher:
+        Initial thermal status: 2
+        Thermal status: 0
+        Screen off: true
+        Low battery: false
+      Metrics:
+        Predicted and launched apps: 15
+        Predicted apps: 23
+        Launched apps: 18
+        Best f1Score: 0.7894737, prefixCount: 20, precision: 0.75, recall: 0.8333333
+      Trigger:
+        Dexopt concurrency: 4
+        Dexopting: false
+        Hot apps list:
+          org.koitharu.kotatsu, w=21, s=OPTIMIZED, optTimeMs=1775596765740, cancelCount=0, dexopt=PERFORMED, [primaryDex=true, reason=profile-utilization, dex2oatTimeMs=828, filter=speed-profile]
+          com.sec.android.gallery3d, w=81, s=OPTIMIZED, optTimeMs=1775596764814, cancelCount=0, dexopt=SKIPPED, [primaryDex=true, reason=boot-after-ota, dex2oatTimeMs=0, filter=speed-profile]
+          com.snapchat.android, w=82, s=OPTIMIZED, optTimeMs=1775596818662, cancelCount=0, dexopt=PERFORMED, [primaryDex=true, reason=profile-utilization, dex2oatTimeMs=12926, filter=speed-profile]
+          com.instagram.android, w=89, s=OPTIMIZED, optTimeMs=1775599397760, cancelCount=1, dexopt=PERFORMED, [primaryDex=true, reason=profile-utilization, dex2oatTimeMs=16639, filter=speed-profile]
+          in.amazon.mShop.android.shopping, w=90, s=OPTIMIZED, optTimeMs=1775596794039, cancelCount=0, dexopt=PERFORMED, [primaryDex=true, reason=profile-utilization, dex2oatTimeMs=8655, filter=speed-profile]
+          com.android.chrome, w=109, s=OPTIMIZED, optTimeMs=1775596767867, cancelCount=0, dexopt=PERFORMED, [primaryDex=true, reason=profile-utilization, dex2oatTimeMs=454, filter=speed-profile], [primaryDex=true, reason=profile-utilization, dex2oatTimeMs=1155, filter=speed-profile], [primaryDex=true, reason=vdex-dm, dex2oatTimeMs=0, filter=verify], [primaryDex=true, reason=vdex-dm, dex2oatTimeMs=0, filter=verify], [primaryDex=true, reason=vdex-dm, dex2oatTimeMs=0, filter=verify], [primaryDex=true, reason=vdex-dm, dex2oatTimeMs=0, filter=verify]
+          com.whatsapp, w=109, s=OPTIMIZED, optTimeMs=1775599381548, cancelCount=1, dexopt=PERFORMED, [primaryDex=true, reason=profile-utilization, dex2oatTimeMs=11869, filter=speed-profile]
+          com.pubg.imobile, w=134, s=OPTIMIZED, optTimeMs=1775596818239, cancelCount=0, dexopt=PERFORMED, [primaryDex=true, reason=profile-utilization, dex2oatTimeMs=3357, filter=speed-profile]
+          com.samsung.android.dialer, w=134, s=OPTIMIZED, optTimeMs=1775596818299, cancelCount=0, dexopt=SKIPPED, [primaryDex=true, reason=boot-after-ota, dex2oatTimeMs=0, filter=speed-profile]
+          com.reddit.frontpage, w=149, s=OPTIMIZED, optTimeMs=1775599381326, cancelCount=1, dexopt=PERFORMED, [primaryDex=true, reason=profile-utilization, dex2oatTimeMs=11477, filter=speed-profile]
+          com.sec.android.app.camera, w=159, s=OPTIMIZED, optTimeMs=1775596818815, cancelCount=0, dexopt=SKIPPED, [primaryDex=true, reason=boot-after-ota, dex2oatTimeMs=0, filter=speed-profile]
+          in.cricketexchange.app.cricketexchange, w=159, s=OPTIMIZED, optTimeMs=1775599381970, cancelCount=1, dexopt=PERFORMED, [primaryDex=true, reason=profile-utilization, dex2oatTimeMs=11917, filter=speed-profile], [primaryDex=false, reason=profile-utilization, dex2oatTimeMs=156, filter=verify], [primaryDex=false, reason=profile-utilization, dex2oatTimeMs=109, filter=verify]
+          com.google.android.googlequicksearchbox, w=170, s=OPTIMIZED, optTimeMs=1775599421958, cancelCount=0, dexopt=PERFORMED, [primaryDex=true, reason=profile-utilization, dex2oatTimeMs=12342, filter=speed-profile]
+          com.sp.protector.free, w=175, s=OPTIMIZED, optTimeMs=1775599382361, cancelCount=0, dexopt=PERFORMED, [primaryDex=true, reason=profile-utilization, dex2oatTimeMs=413, filter=speed-profile], [primaryDex=false, reason=vdex, dex2oatTimeMs=0, filter=verify], [primaryDex=false, reason=profile-utilization, dex2oatTimeMs=150, filter=verify]
+          com.ytheekshana.deviceinfo, w=178, s=OPTIMIZED, optTimeMs=1775599386800, cancelCount=0, dexopt=PERFORMED, [primaryDex=true, reason=profile-utilization, dex2oatTimeMs=790, filter=speed-profile], [primaryDex=false, reason=vdex, dex2oatTimeMs=0, filter=verify]
+          com.sec.android.app.vepreload, w=185, s=OPTIMIZED, optTimeMs=1775599388201, cancelCount=0, dexopt=PERFORMED, [primaryDex=true, reason=profile-utilization, dex2oatTimeMs=1559, filter=speed-profile]
+          com.android.settings, w=186, s=OPTIMIZED, optTimeMs=1775599392492, cancelCount=0, dexopt=PERFORMED, [primaryDex=true, reason=profile-utilization, dex2oatTimeMs=1821, filter=speed-profile]
+          com.google.android.apps.tachyon, w=188, s=OPTIMIZED, optTimeMs=1775599409068, cancelCount=0, dexopt=PERFORMED, [primaryDex=true, reason=profile-utilization, dex2oatTimeMs=5121, filter=speed-profile]
+          com.google.android.gm, w=191, s=OPTIMIZED, optTimeMs=1775599461858, cancelCount=0, dexopt=PERFORMED, [primaryDex=true, reason=profile-utilization, dex2oatTimeMs=10412, filter=speed-profile]
+          com.myntra.android, w=192, s=OPTIMIZED, optTimeMs=1775599404346, cancelCount=0, dexopt=PERFORMED, [primaryDex=true, reason=profile-utilization, dex2oatTimeMs=2196, filter=speed-profile]
+          com.sec.android.app.voicenote, w=192, s=OPTIMIZED, optTimeMs=1775599566708, cancelCount=0, dexopt=PERFORMED, [primaryDex=true, reason=profile-utilization, dex2oatTimeMs=11828, filter=speed]
+          com.instagram.barcelona, w=197, s=OPTIMIZED, optTimeMs=1775599488697, cancelCount=0, dexopt=PERFORMED, [primaryDex=true, reason=profile-utilization, dex2oatTimeMs=7985, filter=speed-profile]
+          com.sec.android.app.sbrowser, w=199, s=OPTIMIZED, optTimeMs=1775599476532, cancelCount=0, dexopt=PERFORMED, [primaryDex=true, reason=profile-utilization, dex2oatTimeMs=3392, filter=speed-profile]
+    Stored SCPM state:
+      packages-9a07:
+        [                                            ]
+      disable-2bb4:
+        [                                            ]
+
+Compiler stats:
+  [com.hrmsapp]
+    (No recorded stats)
+
+HeimdAllFS state:
+  [com.hrmsapp]
+    path: /data/app/~~5tVd5UQ6GuAuDKDaFxD-sg==/com.hrmsapp-3oEHxgG2y-NKnAZehCMWBA==/base.apk
+    Compressed? False
+  [ Summary ]
+    # of packages: 1 / # of packages in DATA: 1 (1)
+    Compressed apks info - sum of orig size: 38897 / sum of compr size : 38897

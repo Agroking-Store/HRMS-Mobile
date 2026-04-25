@@ -7,10 +7,12 @@ import {
   Text,
   View,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { useAuth } from '../../context/AuthContext';
 import {
-  getMyAppraisalCycles,
-  getMyGoals,
-  getMyReviews,
+  getCycles,
+  getGoals,
+  getReviews,
 } from '../../services/performanceService';
 import {
   AppraisalCycle,
@@ -20,10 +22,9 @@ import {
   PerformanceReview,
   PerformanceReviewStatus,
 } from '../../types/performance';
+import { getApiErrorMessage } from '../../utils/apiError';
 
-type PerformanceTab = 'Appraisal Cycles' | 'My Reviews' | 'Goals';
-
-const TABS: PerformanceTab[] = ['Appraisal Cycles', 'My Reviews', 'Goals'];
+type PerformanceTab = 'My Reviews' | 'Goals' | 'Cycles';
 
 const CYCLE_STATUS_COLORS: Record<AppraisalCycleStatus, string> = {
   Draft: '#6B7280',
@@ -94,7 +95,16 @@ const renderState = (
 };
 
 export default function PerformanceScreen() {
-  const [activeTab, setActiveTab] = useState<PerformanceTab>('Appraisal Cycles');
+  const { user } = useAuth();
+  const isEmployee = user?.role === 'EMPLOYEE';
+  const isManager = user?.role === 'DEPARTMENT_MANAGER' || user?.role === 'DIRECT_MANAGER';
+  const isHrOrAdmin = user?.role === 'HR_MANAGER' || user?.role === 'ADMIN';
+  const tabs: PerformanceTab[] = isEmployee
+    ? ['My Reviews', 'Goals']
+    : isManager || isHrOrAdmin
+      ? ['My Reviews', 'Goals', 'Cycles']
+      : ['My Reviews'];
+  const [activeTab, setActiveTab] = useState<PerformanceTab>(tabs[0]);
 
   const [cycles, setCycles] = useState<AppraisalCycle[]>([]);
   const [cyclesLoading, setCyclesLoading] = useState(false);
@@ -107,18 +117,19 @@ export default function PerformanceScreen() {
   const [goals, setGoals] = useState<GoalItem[]>([]);
   const [goalsLoading, setGoalsLoading] = useState(false);
   const [goalsError, setGoalsError] = useState('');
+  const [expandedCycleId, setExpandedCycleId] = useState<string | null>(null);
 
   const fetchCycles = useCallback(async () => {
     setCyclesLoading(true);
     setCyclesError('');
     try {
-      const response = await getMyAppraisalCycles();
+      const response = await getCycles();
       const sorted = [...response].sort(
         (a, b) => new Date(b.startDate).getTime() - new Date(a.startDate).getTime(),
       );
       setCycles(sorted);
-    } catch {
-      setCyclesError('Unable to load appraisal cycles. Please try again.');
+    } catch (error: unknown) {
+      setCyclesError(getApiErrorMessage(error, 'Unable to load appraisal cycles. Please try again.'));
     } finally {
       setCyclesLoading(false);
     }
@@ -128,10 +139,10 @@ export default function PerformanceScreen() {
     setReviewsLoading(true);
     setReviewsError('');
     try {
-      const response = await getMyReviews();
+      const response = await getReviews();
       setReviews(response);
-    } catch {
-      setReviewsError('Unable to load reviews. Please try again.');
+    } catch (error: unknown) {
+      setReviewsError(getApiErrorMessage(error, 'Unable to load reviews. Please try again.'));
     } finally {
       setReviewsLoading(false);
     }
@@ -141,23 +152,27 @@ export default function PerformanceScreen() {
     setGoalsLoading(true);
     setGoalsError('');
     try {
-      const response = await getMyGoals();
+      const response = await getGoals(user?.role);
       const sorted = [...response].sort(
         (a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime(),
       );
       setGoals(sorted);
-    } catch {
-      setGoalsError('Unable to load goals. Please try again.');
+    } catch (error: unknown) {
+      setGoalsError(getApiErrorMessage(error, 'Unable to load goals. Please try again.'));
     } finally {
       setGoalsLoading(false);
     }
-  }, []);
+  }, [user?.role]);
 
   useEffect(() => {
-    if (activeTab === 'Appraisal Cycles') {
+    if (!tabs.includes(activeTab)) {
+      setActiveTab(tabs[0]);
+      return;
+    }
+    if (activeTab === 'Cycles') {
       void fetchCycles();
     }
-  }, [activeTab, fetchCycles]);
+  }, [activeTab, fetchCycles, tabs]);
 
   useEffect(() => {
     if (activeTab === 'My Reviews') {
@@ -186,7 +201,11 @@ export default function PerformanceScreen() {
     return (
       <View style={styles.sectionContent}>
         {cycles.map(cycle => (
-          <View key={cycle._id} style={styles.card}>
+          <Pressable
+            key={cycle._id}
+            style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}
+            onPress={() => setExpandedCycleId(prev => (prev === cycle._id ? null : cycle._id))}
+          >
             <View style={styles.rowBetween}>
               <Text style={styles.cardTitle}>{cycle.name}</Text>
               <View style={[styles.badge, { backgroundColor: CYCLE_STATUS_COLORS[cycle.status] }]}>
@@ -196,7 +215,10 @@ export default function PerformanceScreen() {
             <Text style={styles.cardMeta}>
               {formatDate(cycle.startDate)} - {formatDate(cycle.endDate)}
             </Text>
-          </View>
+            {expandedCycleId === cycle._id ? (
+              <Text style={styles.cardMeta}>Cycle ID: {cycle._id}</Text>
+            ) : null}
+          </Pressable>
         ))}
       </View>
     );
@@ -265,9 +287,9 @@ export default function PerformanceScreen() {
   };
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.tabRow}>
-        {TABS.map(tab => (
+        {tabs.map(tab => (
           <Pressable
             key={tab}
             style={[styles.tabButton, tab === activeTab && styles.tabButtonActive]}
@@ -279,11 +301,11 @@ export default function PerformanceScreen() {
       </View>
 
       <ScrollView contentContainerStyle={styles.contentContainer}>
-        {activeTab === 'Appraisal Cycles' && renderCycles()}
         {activeTab === 'My Reviews' && renderReviews()}
         {activeTab === 'Goals' && renderGoals()}
+        {activeTab === 'Cycles' && renderCycles()}
       </ScrollView>
-    </View>
+    </SafeAreaView>
   );
 }
 
@@ -334,6 +356,9 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 12,
     gap: 6,
+  },
+  cardPressed: {
+    opacity: 0.9,
   },
   rowBetween: {
     flexDirection: 'row',

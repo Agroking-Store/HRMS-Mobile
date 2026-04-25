@@ -11,6 +11,7 @@ import {
   Platform,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import axios from 'axios';
 import { loginUser } from '../../services/authService';
 import { useAuth } from '../../context/AuthContext';
 
@@ -34,14 +35,17 @@ export default function LoginScreen() {
       ]);
       setUser(data.data);
     } catch (error: unknown) {
-      const message =
-        typeof error === 'object' &&
-        error !== null &&
-        'response' in error &&
-        typeof (error as { response?: { data?: { message?: string } } }).response?.data?.message ===
-          'string'
-          ? (error as { response?: { data?: { message?: string } } }).response?.data?.message
-          : 'Invalid credentials';
+      let message = 'Unable to sign in. Please try again.';
+      if (axios.isAxiosError(error)) {
+        const serverMessage = error.response?.data?.message;
+        if (typeof serverMessage === 'string' && serverMessage.trim().length > 0) {
+          message = serverMessage;
+        } else if (error.code === 'ECONNABORTED') {
+          message = 'Request timed out. Please check your connection.';
+        } else if (!error.response) {
+          message = 'Cannot reach server. Check backend and USB reverse.';
+        }
+      }
       Alert.alert('Login Failed', message);
     } finally {
       setLoading(false);

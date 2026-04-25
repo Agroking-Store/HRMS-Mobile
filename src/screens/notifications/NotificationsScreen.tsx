@@ -8,7 +8,8 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { useFocusEffect } from '@react-navigation/native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNotification } from '../../context/NotificationContext';
 import {
   getMyNotifications,
@@ -16,6 +17,11 @@ import {
   markAsRead,
 } from '../../services/notificationService';
 import { AppNotification, NotificationType } from '../../types/notification';
+import { getApiErrorMessage } from '../../utils/apiError';
+
+type NotificationListRow =
+  | { kind: 'header'; key: string; title: string; emptyText?: string }
+  | { kind: 'item'; key: string; item: AppNotification };
 
 const TYPE_COLORS: Record<NotificationType, string> = {
   success: '#F0FDF4',
@@ -46,6 +52,7 @@ const formatDateTime = (value: string) => {
 };
 
 export default function NotificationsScreen() {
+  const navigation = useNavigation<any>();
   const { unreadCount, refreshUnreadCount, decrementUnreadCount, clearUnreadCount } = useNotification();
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [loading, setLoading] = useState(false);
@@ -69,8 +76,8 @@ export default function NotificationsScreen() {
         );
         setNotifications(sorted);
         await refreshUnreadCount();
-      } catch {
-        setError('Unable to load notifications. Please try again.');
+      } catch (error: unknown) {
+        setError(getApiErrorMessage(error, 'Unable to load notifications. Please try again.'));
       } finally {
         if (isRefresh) {
           setRefreshing(false);
@@ -110,6 +117,46 @@ export default function NotificationsScreen() {
       await refreshUnreadCount();
     } finally {
       setMarkingMap(prev => ({ ...prev, [item._id]: false }));
+    }
+  };
+
+  const resolveTargetRoute = (item: AppNotification): string | null => {
+    if (item.targetScreen) {
+      return item.targetScreen;
+    }
+    if (item.deepLink) {
+      if (item.deepLink.startsWith('/attendance')) {
+        return 'Attendance';
+      }
+      if (item.deepLink.startsWith('/payroll')) {
+        return 'Payroll';
+      }
+      if (item.deepLink.startsWith('/performance')) {
+        return 'Performance';
+      }
+      if (item.deepLink.startsWith('/profile')) {
+        return 'Profile';
+      }
+      if (item.deepLink.startsWith('/dashboard')) {
+        return 'Dashboard';
+      }
+      return null;
+    }
+    if (item.type === 'warning' || item.type === 'error') {
+      return 'Dashboard';
+    }
+    return null;
+  };
+
+  const handleNotificationTap = async (item: AppNotification) => {
+    await handleMarkOneRead(item);
+    const target = resolveTargetRoute(item);
+    if (target) {
+      navigation.navigate(target);
+      return;
+    }
+    if (item.deepLink || item.type) {
+      console.warn(`Unsupported notification deep-link/type: ${item.deepLink ?? item.type}`);
     }
   };
 
@@ -175,23 +222,42 @@ export default function NotificationsScreen() {
     );
   }
 
+  const unreadNotifications = notifications.filter(item => !item.isRead);
+  const readNotifications = notifications.filter(item => item.isRead);
+  const listRows: NotificationListRow[] = [
+    {
+      kind: 'header',
+      key: 'header-unread',
+      title: 'Unread',
+      emptyText: unreadNotifications.length === 0 ? 'No unread notifications.' : undefined,
+    },
+    ...unreadNotifications.map(item => ({ kind: 'item' as const, key: `unread-${item._id}`, item })),
+    {
+      kind: 'header',
+      key: 'header-read',
+      title: 'Read',
+      emptyText: readNotifications.length === 0 ? 'No read notifications yet.' : undefined,
+    },
+    ...readNotifications.map(item => ({ kind: 'item' as const, key: `read-${item._id}`, item })),
+  ];
+
   if (notifications.length === 0) {
     return (
-      <View style={styles.container}>
+      <SafeAreaView style={styles.container} edges={['top']}>
         {header}
         <View style={styles.stateContainer}>
           <Text style={styles.emptyText}>No notifications available.</Text>
         </View>
-      </View>
+      </SafeAreaView>
     );
   }
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top']}>
       {header}
       <FlatList
-        data={notifications}
-        keyExtractor={item => item._id}
+        data={listRows}
+        keyExtractor={item => item.key}
         contentContainerStyle={styles.listContent}
         refreshControl={
           <RefreshControl
@@ -201,36 +267,45 @@ export default function NotificationsScreen() {
           />
         }
         renderItem={({ item }) => {
-          const isMarking = markingMap[item._id];
-          const cardBackground = item.isRead ? '#FFFFFF' : TYPE_COLORS[item.type];
+          if (item.kind === 'header') {
+            return (
+              <View style={styles.sectionWrap}>
+                <Text style={styles.sectionTitle}>{item.title}</Text>
+                {item.emptyText ? <Text style={styles.sectionEmpty}>{item.emptyText}</Text> : null}
+              </View>
+            );
+          }
+          const notification = item.item;
+          const isMarking = markingMap[notification._id];
+          const cardBackground = notification.isRead ? '#FFFFFF' : TYPE_COLORS[notification.type];
           return (
             <TouchableOpacity
               style={[styles.card, { backgroundColor: cardBackground }]}
               activeOpacity={0.8}
-              onPress={() => void handleMarkOneRead(item)}
-              disabled={item.isRead || isMarking}
+              onPress={() => void handleNotificationTap(notification)}
+              disabled={isMarking}
             >
               <View style={styles.rowBetween}>
-                <Text style={styles.title}>{item.title}</Text>
-                {!item.isRead ? (
+                <Text style={styles.title}>{notification.title}</Text>
+                {!notification.isRead ? (
                   <View style={styles.unreadPill}>
                     <Text style={styles.unreadPillText}>Unread</Text>
                   </View>
                 ) : null}
               </View>
-              <Text style={styles.message}>{item.message}</Text>
+              <Text style={styles.message}>{notification.message}</Text>
               <View style={styles.footerRow}>
-                <Text style={[styles.typeText, { color: TYPE_TEXT_COLORS[item.type] }]}>
-                  {item.type.toUpperCase()}
+                <Text style={[styles.typeText, { color: TYPE_TEXT_COLORS[notification.type] }]}>
+                  {notification.type.toUpperCase()}
                 </Text>
-                <Text style={styles.timeText}>{formatDateTime(item.createdAt)}</Text>
+                <Text style={styles.timeText}>{formatDateTime(notification.createdAt)}</Text>
               </View>
               {isMarking ? <ActivityIndicator size="small" color="#01696f" style={styles.inlineLoader} /> : null}
             </TouchableOpacity>
           );
         }}
       />
-    </View>
+    </SafeAreaView>
   );
 }
 
@@ -279,6 +354,20 @@ const styles = StyleSheet.create({
     padding: 12,
     gap: 10,
     paddingBottom: 24,
+  },
+  sectionWrap: {
+    gap: 6,
+    marginBottom: 4,
+  },
+  sectionTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#111827',
+  },
+  sectionEmpty: {
+    fontSize: 12,
+    color: '#6B7280',
+    marginBottom: 6,
   },
   card: {
     borderWidth: 1,

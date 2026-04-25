@@ -10,6 +10,8 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { useAuth } from '../../context/AuthContext';
 import {
   applyLeave,
   getHolidays,
@@ -20,43 +22,35 @@ import {
 import {
   ApplyLeavePayload,
   AttendanceRecord,
-  AttendanceStatus,
   Holiday,
   LeaveBalance,
   LeaveRequest,
-  LeaveRequestStatus,
 } from '../../types/attendance';
+import { getApiErrorMessage } from '../../utils/apiError';
 
-type AttendanceTab = 'My Attendance' | 'Leave' | 'Holidays';
+type AttendanceTab = 'My Attendance' | 'My Leaves' | 'Holidays' | 'Leave Approvals';
 
-const TABS: AttendanceTab[] = ['My Attendance', 'Leave', 'Holidays'];
+const TABS_EMPLOYEE: AttendanceTab[] = ['My Attendance', 'My Leaves', 'Holidays'];
+const TABS_APPROVER: AttendanceTab[] = ['My Attendance', 'My Leaves', 'Holidays', 'Leave Approvals'];
+const TABS_HOLIDAYS_ONLY: AttendanceTab[] = ['Holidays'];
 
-const DEFAULT_LEAVE_TYPES = ['Casual Leave', 'Sick Leave', 'Annual Leave', 'Unpaid Leave'];
+const SELF_ATTENDANCE_ROLES = new Set(['EMPLOYEE', 'HR_OFFICER', 'HR_MANAGER', 'DEPARTMENT_MANAGER', 'DIRECT_MANAGER']);
+const APPROVER_ROLES = new Set(['HR_MANAGER', 'DEPARTMENT_MANAGER', 'DIRECT_MANAGER']);
 
-const STATUS_COLORS: Record<AttendanceStatus, string> = {
+const STATUS_COLOR: Record<string, string> = {
   Present: '#10B981',
   Absent: '#EF4444',
   Late: '#F59E0B',
-  'Half Day': '#F59E0B',
+  'Half Day': '#F97316',
   'On Leave': '#3B82F6',
+  Holiday: '#01696f',
 };
 
-const LEAVE_STATUS_COLORS: Record<LeaveRequestStatus, string> = {
+const LEAVE_STATUS_COLOR: Record<string, string> = {
   Pending: '#F59E0B',
   Approved: '#10B981',
   Rejected: '#EF4444',
 };
-
-const HOLIDAY_COLORS: Record<Holiday['type'], string> = {
-  Public: '#01696f',
-  Optional: '#6B7280',
-};
-
-const formatMonthLabel = (month: number, year: number) =>
-  new Date(year, month - 1, 1).toLocaleDateString('en-US', {
-    month: 'long',
-    year: 'numeric',
-  });
 
 const formatDate = (value: string) => {
   const parsed = new Date(value);
@@ -70,297 +64,279 @@ const formatDate = (value: string) => {
   });
 };
 
+const toTime = (value?: string) => {
+  if (!value) {
+    return '--';
+  }
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) {
+    return value;
+  }
+  return parsed.toLocaleTimeString('en-US', {
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+};
+
 export default function AttendanceScreen() {
-  const now = useMemo(() => new Date(), []);
-  const [activeTab, setActiveTab] = useState<AttendanceTab>('My Attendance');
+  const { user } = useAuth();
+  const role = user?.role ?? '';
 
-  const [month, setMonth] = useState(now.getMonth() + 1);
-  const [year, setYear] = useState(now.getFullYear());
+  const tabs = useMemo(() => {
+    if (APPROVER_ROLES.has(role)) {
+      return TABS_APPROVER;
+    }
+    if (SELF_ATTENDANCE_ROLES.has(role)) {
+      return TABS_EMPLOYEE;
+    }
+    return TABS_HOLIDAYS_ONLY;
+  }, [role]);
 
-  const [attendanceRecords, setAttendanceRecords] = useState<AttendanceRecord[]>([]);
-  const [attendanceLoading, setAttendanceLoading] = useState(false);
-  const [attendanceError, setAttendanceError] = useState('');
-
-  const [leaveBalances, setLeaveBalances] = useState<LeaveBalance[]>([]);
+  const [activeTab, setActiveTab] = useState<AttendanceTab>(tabs[0]);
+  const [attendance, setAttendance] = useState<AttendanceRecord[]>([]);
+  const [leaveBalance, setLeaveBalance] = useState<LeaveBalance | null>(null);
   const [leaveRequests, setLeaveRequests] = useState<LeaveRequest[]>([]);
-  const [leaveLoading, setLeaveLoading] = useState(false);
-  const [leaveError, setLeaveError] = useState('');
-
   const [holidays, setHolidays] = useState<Holiday[]>([]);
-  const [holidaysLoading, setHolidaysLoading] = useState(false);
-  const [holidaysError, setHolidaysError] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
-  const [isApplyModalVisible, setIsApplyModalVisible] = useState(false);
-  const [isSubmittingLeave, setIsSubmittingLeave] = useState(false);
-  const [applyError, setApplyError] = useState('');
+  const [applyVisible, setApplyVisible] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
   const [leaveType, setLeaveType] = useState('');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [reason, setReason] = useState('');
-
-  const leaveTypeOptions = useMemo(() => {
-    const fromBalance = leaveBalances.map(item => item.leaveType);
-    const all = [...fromBalance, ...DEFAULT_LEAVE_TYPES];
-    return Array.from(new Set(all));
-  }, [leaveBalances]);
+  const [applyError, setApplyError] = useState('');
 
   useEffect(() => {
-    if (!leaveType && leaveTypeOptions.length > 0) {
-      setLeaveType(leaveTypeOptions[0]);
+    if (!tabs.includes(activeTab)) {
+      setActiveTab(tabs[0]);
     }
-  }, [leaveType, leaveTypeOptions]);
+  }, [activeTab, tabs]);
 
-  const fetchAttendance = useCallback(async () => {
-    setAttendanceLoading(true);
-    setAttendanceError('');
+  const loadAttendance = useCallback(async () => {
+    setLoading(true);
+    setError('');
     try {
-      const records = await getMyAttendance(month, year);
-      setAttendanceRecords(records);
-    } catch {
-      setAttendanceError('Unable to load attendance records. Please try again.');
+      const records = await getMyAttendance();
+      setAttendance(records);
+    } catch (err: unknown) {
+      setError(getApiErrorMessage(err, 'Unable to load attendance records.'));
     } finally {
-      setAttendanceLoading(false);
-    }
-  }, [month, year]);
-
-  const fetchLeaveData = useCallback(async () => {
-    setLeaveLoading(true);
-    setLeaveError('');
-    try {
-      const [balances, requests] = await Promise.all([getLeaveBalance(), getMyLeaveRequests()]);
-      setLeaveBalances(balances);
-      setLeaveRequests(requests);
-    } catch {
-      setLeaveError('Unable to load leave details. Please try again.');
-    } finally {
-      setLeaveLoading(false);
+      setLoading(false);
     }
   }, []);
 
-  const fetchHolidays = useCallback(async () => {
-    setHolidaysLoading(true);
-    setHolidaysError('');
+  const loadLeaves = useCallback(async () => {
+    setLoading(true);
+    setError('');
     try {
-      const holidayList = await getHolidays(year);
-      setHolidays(holidayList);
-    } catch {
-      setHolidaysError('Unable to load holidays. Please try again.');
+      const [balanceRes, requestsRes] = await Promise.all([getLeaveBalance(), getMyLeaveRequests()]);
+      setLeaveBalance(balanceRes);
+      setLeaveRequests(requestsRes);
+      if (!leaveType && balanceRes.balances.length > 0) {
+        setLeaveType(balanceRes.balances[0].leaveType);
+      }
+    } catch (err: unknown) {
+      setError(getApiErrorMessage(err, 'Unable to load leave data.'));
     } finally {
-      setHolidaysLoading(false);
+      setLoading(false);
     }
-  }, [year]);
+  }, [leaveType]);
+
+  const loadHolidays = useCallback(async () => {
+    setLoading(true);
+    setError('');
+    try {
+      const holidayList = await getHolidays();
+      setHolidays(holidayList);
+    } catch (err: unknown) {
+      setError(getApiErrorMessage(err, 'Unable to load holidays.'));
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
     if (activeTab === 'My Attendance') {
-      fetchAttendance();
+      void loadAttendance();
+    } else if (activeTab === 'My Leaves') {
+      void loadLeaves();
+    } else if (activeTab === 'Holidays') {
+      void loadHolidays();
     }
-  }, [activeTab, fetchAttendance]);
+  }, [activeTab, loadAttendance, loadHolidays, loadLeaves]);
 
-  useEffect(() => {
-    if (activeTab === 'Leave') {
-      fetchLeaveData();
-    }
-  }, [activeTab, fetchLeaveData]);
-
-  useEffect(() => {
-    if (activeTab === 'Holidays') {
-      fetchHolidays();
-    }
-  }, [activeTab, fetchHolidays]);
-
-  const handlePreviousMonth = () => {
-    if (month === 1) {
-      setMonth(12);
-      setYear(prev => prev - 1);
-      return;
-    }
-    setMonth(prev => prev - 1);
-  };
-
-  const handleNextMonth = () => {
-    if (month === 12) {
-      setMonth(1);
-      setYear(prev => prev + 1);
-      return;
-    }
-    setMonth(prev => prev + 1);
-  };
-
-  const resetApplyLeaveForm = () => {
-    setLeaveType(leaveTypeOptions[0] ?? '');
-    setStartDate('');
-    setEndDate('');
-    setReason('');
-    setApplyError('');
-  };
-
-  const handleOpenApplyLeave = () => {
-    resetApplyLeaveForm();
-    setIsApplyModalVisible(true);
-  };
-
-  const handleSubmitLeave = async () => {
+  const submitLeave = async () => {
     if (!leaveType || !startDate || !endDate || !reason.trim()) {
       setApplyError('All fields are required.');
       return;
     }
+    setSubmitting(true);
+    setApplyError('');
     const payload: ApplyLeavePayload = {
       leaveType,
       startDate,
       endDate,
       reason: reason.trim(),
     };
-    setIsSubmittingLeave(true);
-    setApplyError('');
     try {
       await applyLeave(payload);
-      setIsApplyModalVisible(false);
-      resetApplyLeaveForm();
-      await fetchLeaveData();
-    } catch {
-      setApplyError('Unable to submit leave request. Please try again.');
+      setApplyVisible(false);
+      setStartDate('');
+      setEndDate('');
+      setReason('');
+      await loadLeaves();
+    } catch (err: unknown) {
+      setApplyError(getApiErrorMessage(err, 'Unable to submit leave request.'));
     } finally {
-      setIsSubmittingLeave(false);
+      setSubmitting(false);
     }
   };
 
   const renderLoading = () => (
-    <View style={styles.stateContainer}>
+    <View style={styles.stateWrap}>
       <ActivityIndicator size="large" color="#01696f" />
     </View>
   );
 
-  const renderError = (message: string, onRetry: () => void) => (
-    <View style={styles.stateContainer}>
-      <Text style={styles.errorText}>{message}</Text>
-      <TouchableOpacity style={styles.retryButton} onPress={onRetry}>
-        <Text style={styles.retryText}>Retry</Text>
-      </TouchableOpacity>
+  const renderError = () => (
+    <View style={styles.stateWrap}>
+      <Text style={styles.errorText}>{error}</Text>
     </View>
   );
 
-  const renderEmpty = (message: string) => (
-    <View style={styles.stateContainer}>
-      <Text style={styles.emptyText}>{message}</Text>
-    </View>
-  );
-
-  const renderAttendanceContent = () => {
-    if (attendanceLoading) {
+  const renderAttendance = () => {
+    if (loading) {
       return renderLoading();
     }
-    if (attendanceError) {
-      return renderError(attendanceError, fetchAttendance);
+    if (error) {
+      return renderError();
     }
-    if (attendanceRecords.length === 0) {
-      return renderEmpty('No attendance records found for this month.');
+    if (attendance.length === 0) {
+      return (
+        <View style={styles.stateWrap}>
+          <Text style={styles.mutedText}>No attendance records found.</Text>
+        </View>
+      );
     }
     return (
-      <View style={styles.sectionContent}>
-        {attendanceRecords.map(record => (
-          <View key={`${record.date}-${record.status}`} style={styles.card}>
+      <View style={styles.listWrap}>
+        {attendance.map(item => (
+          <View key={item._id} style={styles.card}>
             <View style={styles.rowBetween}>
-              <Text style={styles.cardTitle}>{formatDate(record.date)}</Text>
-              <View style={[styles.badge, { backgroundColor: STATUS_COLORS[record.status] }]}>
-                <Text style={styles.badgeText}>{record.status}</Text>
+              <Text style={styles.cardTitle}>{formatDate(item.date)}</Text>
+              <View style={[styles.badge, { backgroundColor: STATUS_COLOR[item.status] ?? '#6B7280' }]}>
+                <Text style={styles.badgeText}>{item.status}</Text>
               </View>
             </View>
-            <Text style={styles.cardMeta}>Check In: {record.checkIn ?? '--'}</Text>
-            <Text style={styles.cardMeta}>Check Out: {record.checkOut ?? '--'}</Text>
-            <Text style={styles.cardMeta}>Working Hours: {record.workingHours}</Text>
+            <Text style={styles.metaText}>Clock In: {toTime(item.clockIn)}</Text>
+            <Text style={styles.metaText}>Clock Out: {toTime(item.clockOut)}</Text>
+            <Text style={styles.metaText}>Total Hours: {item.totalHours ?? 0}</Text>
+            <Text style={styles.metaText}>Break Minutes: {item.totalBreakMinutes ?? 0}</Text>
           </View>
         ))}
       </View>
     );
   };
 
-  const renderLeaveContent = () => {
-    if (leaveLoading) {
+  const renderLeaves = () => {
+    if (loading) {
       return renderLoading();
     }
-    if (leaveError) {
-      return renderError(leaveError, fetchLeaveData);
+    if (error) {
+      return renderError();
     }
     return (
-      <View style={styles.sectionContent}>
-        <View style={styles.leaveHeaderRow}>
+      <View style={styles.listWrap}>
+        <View style={styles.rowBetween}>
           <Text style={styles.sectionTitle}>Leave Balance</Text>
-          <TouchableOpacity style={styles.primaryButton} onPress={handleOpenApplyLeave}>
+          <TouchableOpacity style={styles.primaryButton} onPress={() => setApplyVisible(true)}>
             <Text style={styles.primaryButtonText}>Apply Leave</Text>
           </TouchableOpacity>
         </View>
-        {leaveBalances.length === 0 ? (
-          renderEmpty('No leave balance available.')
-        ) : (
-          leaveBalances.map(item => (
+        {leaveBalance?.balances?.length ? (
+          leaveBalance.balances.map(item => (
             <View key={item.leaveType} style={styles.card}>
               <Text style={styles.cardTitle}>{item.leaveType}</Text>
-              <View style={styles.rowWrap}>
-                <Text style={styles.cardMeta}>Total: {item.total}</Text>
-                <Text style={styles.cardMeta}>Used: {item.used}</Text>
-                <Text style={styles.cardMeta}>Remaining: {item.remaining}</Text>
-              </View>
+              <Text style={styles.metaText}>Allocated: {item.allocated}</Text>
+              <Text style={styles.metaText}>Used: {item.used}</Text>
+              <Text style={styles.metaText}>Remaining: {item.remaining}</Text>
             </View>
           ))
-        )}
-        <Text style={styles.sectionTitle}>Leave Requests</Text>
-        {leaveRequests.length === 0 ? (
-          renderEmpty('No leave requests submitted yet.')
         ) : (
-          leaveRequests.map((request, index) => (
-            <View key={`${request.leaveType}-${request.startDate}-${index}`} style={styles.card}>
+          <View style={styles.stateWrap}>
+            <Text style={styles.mutedText}>No leave balance found.</Text>
+          </View>
+        )}
+        <Text style={styles.sectionTitle}>My Leave Requests</Text>
+        {leaveRequests.length ? (
+          leaveRequests.map(item => (
+            <View key={item._id} style={styles.card}>
               <View style={styles.rowBetween}>
-                <Text style={styles.cardTitle}>{request.leaveType}</Text>
-                <View style={[styles.badge, { backgroundColor: LEAVE_STATUS_COLORS[request.status] }]}>
-                  <Text style={styles.badgeText}>{request.status}</Text>
+                <Text style={styles.cardTitle}>{item.leaveType}</Text>
+                <View style={[styles.badge, { backgroundColor: LEAVE_STATUS_COLOR[item.status] ?? '#6B7280' }]}>
+                  <Text style={styles.badgeText}>{item.status}</Text>
                 </View>
               </View>
-              <Text style={styles.cardMeta}>
-                {formatDate(request.startDate)} - {formatDate(request.endDate)}
+              <Text style={styles.metaText}>
+                {formatDate(item.startDate)} - {formatDate(item.endDate)}
               </Text>
-              <Text style={styles.cardMeta}>{request.reason}</Text>
+              <Text style={styles.metaText}>Total Days: {item.totalDays}</Text>
+              <Text style={styles.metaText}>{item.reason}</Text>
             </View>
           ))
+        ) : (
+          <View style={styles.stateWrap}>
+            <Text style={styles.mutedText}>No leave requests found.</Text>
+          </View>
         )}
       </View>
     );
   };
 
-  const renderHolidaysContent = () => {
-    if (holidaysLoading) {
+  const renderHolidays = () => {
+    if (loading) {
       return renderLoading();
     }
-    if (holidaysError) {
-      return renderError(holidaysError, fetchHolidays);
+    if (error) {
+      return renderError();
     }
     if (holidays.length === 0) {
-      return renderEmpty('No holidays found for this year.');
+      return (
+        <View style={styles.stateWrap}>
+          <Text style={styles.mutedText}>No holidays found.</Text>
+        </View>
+      );
     }
     return (
-      <View style={styles.sectionContent}>
-        {holidays.map(holiday => (
-          <View key={`${holiday.name}-${holiday.date}`} style={styles.card}>
-            <View style={styles.rowBetween}>
-              <View style={styles.flexOne}>
-                <Text style={styles.cardTitle}>{holiday.name}</Text>
-                <Text style={styles.cardMeta}>
-                  {formatDate(holiday.date)} | {holiday.day}
-                </Text>
-              </View>
-              <View style={[styles.badge, { backgroundColor: HOLIDAY_COLORS[holiday.type] }]}>
-                <Text style={styles.badgeText}>{holiday.type}</Text>
-              </View>
-            </View>
+      <View style={styles.listWrap}>
+        {holidays.map(item => (
+          <View key={item._id} style={styles.card}>
+            <Text style={styles.cardTitle}>{item.name}</Text>
+            <Text style={styles.metaText}>{formatDate(item.date)}</Text>
+            <Text style={styles.metaText}>Type: {item.type}</Text>
           </View>
         ))}
+      </View>
+    );
+  };
+
+  const renderLeaveApprovals = () => {
+    return (
+      <View style={styles.stateWrap}>
+        <Text style={styles.pendingTitle}>Pending Endpoint</Text>
+        <Text style={styles.mutedText}>
+          Leave approvals requires GET /leaves/pending, which is not present in leave routes.
+        </Text>
       </View>
     );
   };
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.tabRow}>
-        {TABS.map(tab => (
+        {tabs.map(tab => (
           <Pressable
             key={tab}
             style={[styles.tabButton, activeTab === tab && styles.tabButtonActive]}
@@ -371,104 +347,63 @@ export default function AttendanceScreen() {
         ))}
       </View>
 
-      {activeTab === 'My Attendance' && (
-        <View style={styles.monthHeader}>
-          <TouchableOpacity style={styles.monthButton} onPress={handlePreviousMonth}>
-            <Text style={styles.monthButtonText}>Prev</Text>
-          </TouchableOpacity>
-          <Text style={styles.monthTitle}>{formatMonthLabel(month, year)}</Text>
-          <TouchableOpacity style={styles.monthButton} onPress={handleNextMonth}>
-            <Text style={styles.monthButtonText}>Next</Text>
-          </TouchableOpacity>
-        </View>
-      )}
-
-      <ScrollView contentContainerStyle={styles.contentContainer}>
-        {activeTab === 'My Attendance' && renderAttendanceContent()}
-        {activeTab === 'Leave' && renderLeaveContent()}
-        {activeTab === 'Holidays' && renderHolidaysContent()}
+      <ScrollView contentContainerStyle={styles.content}>
+        {activeTab === 'My Attendance' && renderAttendance()}
+        {activeTab === 'My Leaves' && renderLeaves()}
+        {activeTab === 'Holidays' && renderHolidays()}
+        {activeTab === 'Leave Approvals' && renderLeaveApprovals()}
       </ScrollView>
 
-      <Modal
-        visible={isApplyModalVisible}
-        transparent
-        animationType="slide"
-        onRequestClose={() => setIsApplyModalVisible(false)}
-      >
+      <Modal visible={applyVisible} transparent animationType="slide" onRequestClose={() => setApplyVisible(false)}>
         <View style={styles.modalOverlay}>
           <View style={styles.modalCard}>
             <Text style={styles.modalTitle}>Apply Leave</Text>
-            <Text style={styles.fieldLabel}>Leave Type</Text>
-            <View style={styles.leaveTypeRow}>
-              {leaveTypeOptions.map(option => (
-                <TouchableOpacity
-                  key={option}
-                  style={[styles.leaveTypeChip, leaveType === option && styles.leaveTypeChipActive]}
-                  onPress={() => setLeaveType(option)}
-                >
-                  <Text
-                    style={[
-                      styles.leaveTypeChipText,
-                      leaveType === option && styles.leaveTypeChipTextActive,
-                    ]}
-                  >
-                    {option}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-            <Text style={styles.fieldLabel}>Start Date</Text>
+            <Text style={styles.label}>Leave Type</Text>
             <TextInput
               style={styles.input}
-              placeholder="YYYY-MM-DD"
+              value={leaveType}
+              onChangeText={setLeaveType}
+              placeholder="Leave type"
               placeholderTextColor="#9CA3AF"
+            />
+            <Text style={styles.label}>Start Date</Text>
+            <TextInput
+              style={styles.input}
               value={startDate}
               onChangeText={setStartDate}
-              autoCapitalize="none"
-            />
-            <Text style={styles.fieldLabel}>End Date</Text>
-            <TextInput
-              style={styles.input}
               placeholder="YYYY-MM-DD"
               placeholderTextColor="#9CA3AF"
+            />
+            <Text style={styles.label}>End Date</Text>
+            <TextInput
+              style={styles.input}
               value={endDate}
               onChangeText={setEndDate}
-              autoCapitalize="none"
-            />
-            <Text style={styles.fieldLabel}>Reason</Text>
-            <TextInput
-              style={[styles.input, styles.reasonInput]}
-              placeholder="Enter reason"
+              placeholder="YYYY-MM-DD"
               placeholderTextColor="#9CA3AF"
+            />
+            <Text style={styles.label}>Reason</Text>
+            <TextInput
+              style={[styles.input, styles.textArea]}
               value={reason}
               onChangeText={setReason}
+              placeholder="Reason"
+              placeholderTextColor="#9CA3AF"
               multiline
             />
             {applyError ? <Text style={styles.errorText}>{applyError}</Text> : null}
             <View style={styles.modalActions}>
-              <TouchableOpacity
-                style={styles.secondaryButton}
-                onPress={() => setIsApplyModalVisible(false)}
-                disabled={isSubmittingLeave}
-              >
+              <TouchableOpacity style={styles.secondaryButton} onPress={() => setApplyVisible(false)}>
                 <Text style={styles.secondaryButtonText}>Cancel</Text>
               </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.primaryButton, isSubmittingLeave && styles.disabledButton]}
-                onPress={handleSubmitLeave}
-                disabled={isSubmittingLeave}
-              >
-                {isSubmittingLeave ? (
-                  <ActivityIndicator color="#FFFFFF" />
-                ) : (
-                  <Text style={styles.primaryButtonText}>Submit</Text>
-                )}
+              <TouchableOpacity style={styles.primaryButton} onPress={submitLeave} disabled={submitting}>
+                {submitting ? <ActivityIndicator color="#FFFFFF" /> : <Text style={styles.primaryButtonText}>Submit</Text>}
               </TouchableOpacity>
             </View>
           </View>
         </View>
       </Modal>
-    </View>
+    </SafeAreaView>
   );
 }
 
@@ -503,41 +438,11 @@ const styles = StyleSheet.create({
   tabTextActive: {
     color: '#FFFFFF',
   },
-  monthHeader: {
-    marginHorizontal: 12,
-    marginBottom: 8,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-  },
-  monthButton: {
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-  },
-  monthButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#01696f',
-  },
-  monthTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#111827',
-  },
-  contentContainer: {
+  content: {
     paddingHorizontal: 12,
     paddingBottom: 24,
   },
-  sectionContent: {
+  listWrap: {
     gap: 10,
   },
   sectionTitle: {
@@ -560,16 +465,14 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     gap: 10,
   },
-  rowWrap: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flexWrap: 'wrap',
-    gap: 12,
-  },
   cardTitle: {
     fontSize: 16,
     fontWeight: '700',
     color: '#111827',
+  },
+  metaText: {
+    fontSize: 14,
+    color: '#6B7280',
   },
   cardMeta: {
     fontSize: 14,
@@ -585,14 +488,14 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#FFFFFF',
   },
-  stateContainer: {
+  stateWrap: {
     minHeight: 240,
     alignItems: 'center',
     justifyContent: 'center',
     padding: 20,
     gap: 12,
   },
-  emptyText: {
+  mutedText: {
     fontSize: 14,
     color: '#6B7280',
     textAlign: 'center',
@@ -601,23 +504,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#EF4444',
     textAlign: 'center',
-  },
-  retryButton: {
-    backgroundColor: '#01696f',
-    borderRadius: 8,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-  },
-  retryText: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: '#FFFFFF',
-  },
-  leaveHeaderRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: 10,
   },
   primaryButton: {
     backgroundColor: '#01696f',
@@ -650,36 +536,10 @@ const styles = StyleSheet.create({
     color: '#111827',
     marginBottom: 4,
   },
-  fieldLabel: {
+  label: {
     fontSize: 14,
     fontWeight: '600',
     color: '#111827',
-  },
-  leaveTypeRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-    marginBottom: 4,
-  },
-  leaveTypeChip: {
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-    borderRadius: 8,
-    paddingHorizontal: 10,
-    paddingVertical: 8,
-    backgroundColor: '#FFFFFF',
-  },
-  leaveTypeChipActive: {
-    backgroundColor: '#01696f',
-    borderColor: '#01696f',
-  },
-  leaveTypeChipText: {
-    fontSize: 12,
-    color: '#111827',
-    fontWeight: '600',
-  },
-  leaveTypeChipTextActive: {
-    color: '#FFFFFF',
   },
   input: {
     borderWidth: 1,
@@ -690,7 +550,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#111827',
   },
-  reasonInput: {
+  textArea: {
     minHeight: 90,
     textAlignVertical: 'top',
   },
@@ -713,10 +573,9 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#111827',
   },
-  disabledButton: {
-    opacity: 0.7,
-  },
-  flexOne: {
-    flex: 1,
+  pendingTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#92400E',
   },
 });
